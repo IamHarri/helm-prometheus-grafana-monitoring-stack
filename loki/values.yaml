@@ -1,0 +1,62 @@
+## grafana-loki-values.yml
+
+loki:
+  enabled: true
+  isDefault: true
+  image:
+    repository: grafana/loki
+    tag: 2.9.3
+  url: http://{{(include "loki.serviceName" .)}}:{{ .Values.loki.service.port }}
+  
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: http-metrics
+    initialDelaySeconds: 45
+  livenessProbe:
+    httpGet:
+      path: /ready
+      port: http-metrics
+    initialDelaySeconds: 45
+  datasource:
+    jsonData: "{}"
+    uid: ""
+  memberlist:
+    service:
+      publishNotReadyAddresses: true
+    config:
+    compactor:
+      working_directory: /data/compactor
+      shared_store: s3
+      compaction_interval: 15m
+  storage_config:
+    aws:
+      s3: s3://<BUCKET NAME>/
+      s3forcepathstyle: true
+      bucketnames: <BUCKET NAME>
+      region: gra
+      insecure: false
+      sse_encryption: false
+      endpoint:  https://s3.gra.io.cloud.ovh.net/
+      access_key_id: <AWS ACCESS KEY ID>
+      secret_access_key: <AWS SECRET KEY>
+    boltdb_shipper:
+      shared_store: s3
+      cache_ttl: 24h
+      active_index_directory: /data/index
+      cache_location: /data/index_cache
+
+promtail:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+  config:
+    logLevel: info
+    serverPort: 3101
+    clients:
+
+      - url: http://{{ .Release.Name }}:3100/loki/api/v1/push
+
+
+grafana:
+  enabled: false

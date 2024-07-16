@@ -1,0 +1,97 @@
+grafana:
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: nginx
+    labels: {}
+    path: /
+    pathType: Prefix
+
+    hosts:
+      - monitoring.harry.com
+    tls: []
+      # - secretName: monitoring.harry.com
+      #   hosts:
+      #     - monitoring.harry.com
+  adminPassword: password
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: "k8s"
+          orgId: 1
+          options:
+            path: /var/lib/grafana/dashboards/k8s
+  dashboards:
+    k8s:
+      nginx:
+        url: https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/grafana/dashboards/nginx.json
+        datasource: Prometheus
+      request-handling-performance:
+        url: https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/grafana/dashboards/request-handling-performance.json
+        datasource: Prometheus
+      k8s-system-api-server:
+        url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-api-server.json
+        datasource: Prometheus
+      k8s-system-coredns:
+        url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-coredns.json
+        datasource: Prometheus
+      k8s-views-global:
+        url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-global.json
+        datasource: Prometheus
+      k8s-views-namespaces:
+        url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-namespaces.json
+        datasource: Prometheus
+      k8s-views-nodes:
+        url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-nodes.json
+        datasource: Prometheus
+      k8s-views-pods:
+        url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json
+        datasource: Prometheus
+      loki:
+        gnetId: 13639
+        datasource: Loki
+  grafana.ini:
+    dashboards:
+      default_home_dashboard_path: /var/lib/grafana/dashboards/k8s/k8s-views-global.json
+  # additionalDataSources:
+  #   - name: loki
+  #     type: loki
+  #     url: http://grafana-loki.svc:3100
+  #     access: proxy
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Loki
+        type: loki
+        url: http://grafana-loki:3100
+        access: proxy
+        isDefault: false
+      - name: Prometheus                                                                                                                                                                
+        type: prometheus                                                                                                                                                                
+        uid: prometheus                                                                                                                                                                 
+        url: http://{{ .Release.Name }}-kube-prom-prometheus:9090/                                                                                                              
+        access: proxy                                                                                                                                                                   
+        isDefault: true                                                                                                                                                                 
+        jsonData:                                                                                                                                                                       
+          httpMethod: POST                                                                                                                                                              
+          timeInterval: 30s                                                                                                                                  
+      - name: Alertmanager                                                                                                                                                              
+        type: alertmanager                                                                                                                                                              
+        uid: alertmanager                                                                                                                                                               
+        url: http://{{ .Release.Name }}-kube-prom-alertmanager:9093/                                                                                                            
+        access: proxy                                                                                                                                                                   
+        jsonData:                                                                                                                                                                       
+          handleGrafanaManagedAlerts: false                                                                                                                                             
+          implementation: prometheus 
+
+prometheus:
+  prometheusSpec:
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    # additionalScrapeConfigs: |
+    #   - job_name: "velero-backup-status-metrics"
+    #     static_configs:
+    #       - targets: ["10.2.0.88:8085"]
